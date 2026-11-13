@@ -3,7 +3,7 @@
 *.pdb
 *.zip
 tests/
-output/*
+output/
 .DS_Store
 *.ipynb
 
