@@ -16,6 +16,16 @@ from matplotlib.animation import FuncAnimation
 
 logger = logging.getLogger(__name__)
 
+plt.rcParams.update({
+    "font.size": 25,          
+    "axes.titlesize": 25,
+    "figure.titlesize": 40,
+    "axes.labelsize": 25,
+    "xtick.labelsize": 25,
+    "ytick.labelsize": 25,
+    "legend.fontsize": 25, 
+})
+
 
 def plot_total_distance_graph(output, distance_list, frame_step: int = 1):
 
@@ -24,16 +34,16 @@ def plot_total_distance_graph(output, distance_list, frame_step: int = 1):
 
     num_frames = distance_list.shape[0]
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,8))
     x_vals = np.arange(num_frames) * frame_step
     y_vals = total_distance_per_frame
 
     ax.plot(x_vals, y_vals)
 
     ax.set_xlabel("Frame Index")
-    ax.set_ylabel("Cumulative Distance between residues (nm)")
-    fig.suptitle("Total Distance between Heavy Atoms", fontsize=13, fontweight="bold")    
-    ax.set_title(f"Average Cumulative Distance: {avg_distance:.3f} nm", fontsize=10, color="dimgray")
+    ax.set_ylabel("Cumulative Distance (nm)")
+    fig.suptitle("Total Distance between Heavy Atoms", fontweight="bold")    
+    ax.set_title(f"Average Cumulative Distance: {avg_distance:.3f} nm", color="dimgray")
     ax.grid(True)
 
     plt.tight_layout()
@@ -88,14 +98,16 @@ def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: 
         logger.info("--- NO RESIDUE DISPLACEMENT DETECTED ---")
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Residue Displacement", fontsize=16, fontweight="bold")
+    fig.suptitle("Residue Displacement", fontweight="bold")
 
     initial_matrix = cumulative_matrix[0] if animate else final_frame_matrix
 
+    cmap = plt.get_cmap("coolwarm").with_extremes(under="white")
+
     im = ax.imshow(
         initial_matrix,
-        cmap="coolwarm",
-        vmin=0.0,
+        cmap=cmap,
+        vmin=1e-9,
         vmax=max_disp,
         origin="lower",
         aspect="equal",
@@ -138,20 +150,20 @@ def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: 
     base_path = Path(output)
     static_output = base_path.with_suffix(".png")    
     last_actual_t = (n_frames - 1) * frame_step
-    final_title = f"Frame 0 -> Frame {last_actual_t} | Max Disp: {max_disp_per_frame[-1]:.3f} nm"
+    final_title = f"Max Displacement: {max_disp_per_frame[-1]:.3f} nm"
 
 
     if animate:
         video_output = base_path.with_suffix(".mp4")
         pbar = tqdm(total=n_frames, desc="Rendering Animation", unit="frame")
-        title = ax.set_title("Frame 0 -> Frame 0 | Max Disp: 0.000 nm", fontweight="bold", fontsize=12)
+        title = ax.set_title("Max Displacement: 0.000 nm", fontweight="bold", )
 
         def update_frame(t: int):
             pbar.n = t + 1
             pbar.update(0)
             im.set_data(cumulative_matrix[t])
             actual_t = t * frame_step
-            title.set_text(f"Frame 0 -> Frame {actual_t} | Max Disp: {max_disp_per_frame[t]:.3f} nm")
+            title.set_text(f"Max Displacement: {max_disp_per_frame[t]:.3f} nm")
             return [im, title]
 
         plt.tight_layout()
@@ -176,7 +188,7 @@ def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: 
         return video_output, static_output
 
     else:
-        ax.set_title(final_title, fontweight="bold", fontsize=12)
+        ax.set_title(final_title, fontweight="bold")
         plt.tight_layout()
         fig.savefig(static_output, dpi=300, bbox_inches="tight")
 
@@ -290,11 +302,11 @@ def plot_hbonds_heatmap(output, trajectory: md.Trajectory, frame_step: int = 1) 
     logger.debug("-------------------------------------------------------")
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Hydrogen Bond Dynamics", fontsize=16, fontweight="bold")
+    fig.suptitle("Hydrogen Bond Dynamics",  fontweight="bold")
 
     # cmap = plt.get_cmap("coolwarm").copy()
-    # cmap.set_bad(color="lightgray")
-    cmap = plt.get_cmap("viridis").with_extremes(bad="lightgray")
+    # cmap.set_bad(color="whitesmoke")
+    cmap = plt.get_cmap("viridis").with_extremes(bad="whitesmoke")
 
     im = ax.imshow(
         event_matrix,
@@ -468,9 +480,9 @@ def plot_hbonds_occupancy_heatmap(
         if as_fraction
         else "Hydrogen Bond Active Frames"
     )
-    fig.suptitle(title_str, fontsize=16, fontweight="bold")
+    fig.suptitle(title_str,  fontweight="bold")
 
-    cmap = plt.get_cmap("viridis").with_extremes(bad="lightgray")
+    cmap = plt.get_cmap("viridis").with_extremes(bad="whitesmoke")
 
     vmax_val = 1.0 if as_fraction else n_frames
     im = ax.imshow(
@@ -664,11 +676,11 @@ def plot_salt_bridge_transitions(trajectory, output, frame_step=1, distance_cuto
     n_res = trajectory.topology.n_residues
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Salt Bridge Dynamics", fontsize=16, fontweight="bold")
+    fig.suptitle("Salt Bridge Dynamics", fontweight="bold")
 
     # cmap = plt.get_cmap("coolwarm").copy()
-    # cmap.set_bad(color="lightgray")
-    cmap = plt.get_cmap("plasma").with_extremes(bad="lightgray")
+    # cmap.set_bad(color="whitesmoke")
+    cmap = plt.get_cmap("plasma").with_extremes(bad="whitesmoke")
 
 
     im = ax.imshow(
@@ -733,3 +745,198 @@ def plot_salt_bridge_transitions(trajectory, output, frame_step=1, distance_cuto
     gc.collect()
 
     return Path(output)
+
+def compute_salt_bridge_occupancy(
+    trajectory: md.Trajectory,
+    distance_cutoff: float = 0.4,
+    as_fraction: bool = True,
+) -> np.ndarray:
+    top = trajectory.topology
+    n_res = top.n_residues
+    n_frames = trajectory.n_frames
+
+    acidic_oxygens = top.select(
+        "(resname ASP and name OD1 OD2) or "
+        "(resname GLU and name OE1 OE2) or "
+        "(resname CYM and name SG)"
+    )
+    basic_nitrogens = top.select(
+        "(resname LYS and name NZ) or "
+        "(resname ARG and name NH1 NH2 NE) or "
+        "(resname HIP and name ND1 NE2)"
+    )
+
+    if len(acidic_oxygens) == 0 or len(basic_nitrogens) == 0:
+        logger.warning("No acidic oxygens or basic nitrogens found in topology.")
+        return np.full((n_res, n_res), np.nan)
+
+    O_idx, N_idx = np.meshgrid(acidic_oxygens, basic_nitrogens, indexing="ij")
+    atom_pairs = np.column_stack((O_idx.ravel(), N_idx.ravel()))
+
+    atom_to_res = np.array([atom.residue.index for atom in top.atoms])
+    res_pairs = atom_to_res[atom_pairs]
+
+    valid_mask = res_pairs[:, 0] != res_pairs[:, 1]
+    atom_pairs = atom_pairs[valid_mask]
+    res_pairs = res_pairs[valid_mask]
+
+    if len(atom_pairs) == 0:
+        logger.warning("No inter-residue salt bridge atom pairs found.")
+        return np.full((n_res, n_res), np.nan)
+
+    unique_res_pairs, inverse_indices = np.unique(
+        res_pairs, axis=0, return_inverse=True
+    )
+
+    sort_idx = np.argsort(inverse_indices)
+    sorted_inverse = inverse_indices[sort_idx]
+    sorted_atom_pairs = atom_pairs[sort_idx]
+
+    boundaries = np.searchsorted(sorted_inverse, np.arange(len(unique_res_pairs)))
+
+    distances = md.compute_distances(trajectory, sorted_atom_pairs)
+    is_bonded_atom = distances <= distance_cutoff
+
+    res_pair_bonded = np.bitwise_or.reduceat(is_bonded_atom, boundaries, axis=1)
+
+    active_frames = res_pair_bonded.sum(axis=0).astype(float)
+    ever_bonded = active_frames > 0
+
+    raw_matrix = np.zeros((n_res, n_res), dtype=float)
+    valid_pairs_mask = np.zeros((n_res, n_res), dtype=bool)
+
+    r1 = unique_res_pairs[:, 0]
+    r2 = unique_res_pairs[:, 1]
+
+    raw_matrix[r1, r2] = active_frames
+    valid_pairs_mask[r1, r2] = ever_bonded
+
+    occupancy_matrix = raw_matrix + raw_matrix.T
+    if as_fraction:
+        occupancy_matrix = occupancy_matrix / n_frames
+
+    valid_pairs = valid_pairs_mask | valid_pairs_mask.T
+    occupancy_matrix[~valid_pairs] = np.nan
+
+    mask = np.triu(~np.isnan(occupancy_matrix), k=1)
+    res_i, res_j = np.where(mask)
+
+    if len(res_i) > 0:
+        occ_values = occupancy_matrix[res_i, res_j]
+        sorted_indices = np.argsort(-occ_values)
+        top_indices = sorted_indices[:10]
+
+        logger.info("--- TOP 10 SALT BRIDGES BY OCCUPANCY ---")
+        for rank, idx in enumerate(top_indices, start=1):
+            r1_idx = res_i[idx]
+            r2_idx = res_j[idx]
+            val = occ_values[idx]
+
+            res1 = top.residue(r1_idx)
+            res2 = top.residue(r2_idx)
+
+            r1_name = f"{res1.name}{res1.resSeq}"
+            r2_name = f"{res2.name}{res2.resSeq}"
+
+            if as_fraction:
+                frames_active = int(round(val * n_frames))
+                logger.info(
+                    f"{rank}: {r1_name} <-> {r2_name} | Active: {frames_active}/{n_frames} frames ({val * 100:.1f}%)"
+                )
+            else:
+                frames_active = int(val)
+                pct = (frames_active / n_frames) * 100
+                logger.info(
+                    f"{rank}: {r1_name} <-> {r2_name} | Active: {frames_active}/{n_frames} frames ({pct:.1f}%)"
+                )
+        logger.info("----------------------------------------")
+    else:
+        logger.info("--- NO ACTIVE SALT BRIDGES FOUND ---")
+
+    return occupancy_matrix
+
+
+def plot_salt_bridge_occupancy_heatmap(
+    trajectory: md.Trajectory,
+    output: str,
+    frame_step: int = 1,
+    distance_cutoff: float = 0.4,
+    as_fraction: bool = True,
+) -> Path:
+    protein_indices = trajectory.topology.select("protein")
+    trajectory = trajectory.atom_slice(protein_indices)
+
+    if frame_step > 1:
+        trajectory = trajectory[::frame_step]
+
+    n_frames = trajectory.n_frames
+    n_res = trajectory.topology.n_residues
+
+    occupancy_matrix = compute_salt_bridge_occupancy(
+        trajectory,
+        distance_cutoff=distance_cutoff,
+        as_fraction=as_fraction,
+    )
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+    title_str = (
+        "Salt Bridge Occupancy (Fraction)"
+        if as_fraction
+        else "Salt Bridge Active Frames"
+    )
+    fig.suptitle(title_str,  fontweight="bold")
+
+    cmap = plt.get_cmap("plasma").with_extremes(bad="whitesmoke")
+
+    vmax_val = 1.0 if as_fraction else n_frames
+    im = ax.imshow(
+        occupancy_matrix,
+        cmap=cmap,
+        origin="lower",
+        aspect="equal",
+        vmin=0.0,
+        vmax=vmax_val,
+    )
+
+    cbar_label = "Occupancy Fraction" if as_fraction else "Total Active Frames"
+    fig.colorbar(im, ax=ax, label=cbar_label)
+
+    tick_step = max(1, int(np.ceil(n_res / 15)))
+    if tick_step > 5:
+        tick_step = max(5, round(tick_step / 5) * 5)
+
+    ticks = np.arange(0, n_res, tick_step)
+    tick_labels = ticks + 1
+
+    ax.set_xticks(ticks)
+    ax.set_yticks(ticks)
+    ax.set_xticklabels(
+        tick_labels, rotation=45, ha="right", rotation_mode="anchor"
+    )
+    ax.set_yticklabels(tick_labels, rotation=0)
+
+    if n_res <= 100:
+        pixel_edges = np.arange(-0.5, n_res, 1)
+        vlines = [[(x, -0.5), (x, n_res - 0.5)] for x in pixel_edges]
+        hlines = [[(-0.5, y), (n_res - 0.5, y)] for y in pixel_edges]
+
+        grid_collection = LineCollection(
+            vlines + hlines,
+            colors="#A0A0A0",
+            linewidths=0.5,
+            antialiaseds=False,
+            zorder=2,
+        )
+        ax.add_collection(grid_collection)
+
+    ax.set_xlabel("Residue Index", fontweight="bold")
+    ax.set_ylabel("Residue Index", fontweight="bold")
+
+    plt.tight_layout()
+    output_path = Path(output)
+    fig.savefig(output_path, bbox_inches="tight", dpi=300)
+
+    plt.close(fig)
+    gc.collect()
+
+    return output_path

@@ -92,6 +92,8 @@ def main():
     logger.info("Writing salt_bridge_heatmap")
     plot.plot_salt_bridge_transitions(trajectory=trajectory, frame_step=1, output=OUTPUT_DIR / "salt_bridge.png")
 
+    plot.plot_salt_bridge_occupancy_heatmap(output= (OUTPUT_DIR / "salt_bridge_occupancy.png"), trajectory=trajectory, frame_step=args.step, as_fraction=True)
+
 
 
     #ending
