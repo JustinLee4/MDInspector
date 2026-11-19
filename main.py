@@ -20,6 +20,7 @@ parser.add_argument("-t", "--traj_file", help="Path to Trajectory (.xtc) File", 
 parser.add_argument("-o", "--output", help="Name of Output Folder", default="")
 parser.add_argument("-s", "--step", help="Number of frames to skip between computing steps", default=1)
 parser.add_argument("-a", "--animate", action="store_true", help="Render Animations")
+parser.add_argument("--notitle", action="store_true", help="Squash Titles (for publication)")
 args = parser.parse_args()
 
 
@@ -74,25 +75,25 @@ def main():
 
     #create graph on total distance between heavy atoms per residue
     logger.info("Writing total_distance_graph")
-    plot.plot_total_distance_graph(output=(OUTPUT_DIR / "total_distance.png"),distance_list=distance_list, frame_step=args.step)
+    plot.plot_total_distance_graph(output=(OUTPUT_DIR / "total_distance.png"),distance_list=distance_list, frame_step=args.step, notitle=args.notitle)
 
     logger.info("Writing displacement_heatmap")
-    plot.plot_displacement_heatmap(output=(OUTPUT_DIR / "total_displacement_heatmap.mp4"), distance_list=distance_list, residue_pairs=residue_pairs, frame_step=args.step, animate=args.animate)
+    plot.plot_displacement_heatmap(output=(OUTPUT_DIR / "total_displacement_heatmap.mp4"), distance_list=distance_list, residue_pairs=residue_pairs, frame_step=args.step, animate=args.animate, notitle=args.notitle)
 
 
     #plot hbond heatmap
     logger.info("Writing hbond_heatmap")
     logger.debug(plot.print_hbonds(trajectory=trajectory, frame_step=1))
 
-    plot.plot_hbonds_occupancy_heatmap(output= (OUTPUT_DIR / "hbond_occupancy.png"), trajectory= trajectory, frame_step = args.step, as_fraction=True)
+    plot.plot_hbonds_occupancy_heatmap(output= (OUTPUT_DIR / "hbond_occupancy.png"), trajectory= trajectory, frame_step = args.step, as_fraction=True, notitle=args.notitle)
 
-    plot.plot_hbonds_heatmap(trajectory=trajectory, frame_step=1, output=OUTPUT_DIR / "hbonds.png")
+    plot.plot_hbonds_heatmap(trajectory=trajectory, frame_step=1, output=OUTPUT_DIR / "hbonds.png", notitle=args.notitle)
 
     #plot salt bridge heatmap
     logger.info("Writing salt_bridge_heatmap")
-    plot.plot_salt_bridge_transitions(trajectory=trajectory, frame_step=1, output=OUTPUT_DIR / "salt_bridge.png")
+    plot.plot_salt_bridge_transitions(trajectory=trajectory, frame_step=1, output=OUTPUT_DIR / "salt_bridge.png", notitle=args.notitle)
 
-    plot.plot_salt_bridge_occupancy_heatmap(output= (OUTPUT_DIR / "salt_bridge_occupancy.png"), trajectory=trajectory, frame_step=args.step, as_fraction=True)
+    plot.plot_salt_bridge_occupancy_heatmap(output= (OUTPUT_DIR / "salt_bridge_occupancy.png"), trajectory=trajectory, frame_step=args.step, as_fraction=True, notitle=args.notitle)
 
 
 

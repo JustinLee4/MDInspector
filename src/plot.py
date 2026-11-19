@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 plt.rcParams.update({
     "font.size": 25,          
     "axes.titlesize": 25,
-    "figure.titlesize": 40,
+    "figure.titlesize": 35,
     "axes.labelsize": 25,
     "xtick.labelsize": 25,
     "ytick.labelsize": 25,
@@ -27,7 +27,7 @@ plt.rcParams.update({
 })
 
 
-def plot_total_distance_graph(output, distance_list, frame_step: int = 1):
+def plot_total_distance_graph(output, distance_list, frame_step: int = 1, notitle: bool = False):
 
     total_distance_per_frame = np.sum(distance_list, axis=1)
     avg_distance = np.mean(total_distance_per_frame)
@@ -42,7 +42,8 @@ def plot_total_distance_graph(output, distance_list, frame_step: int = 1):
 
     ax.set_xlabel("Frame Index")
     ax.set_ylabel("Cumulative Distance (nm)")
-    fig.suptitle("Total Distance between Heavy Atoms", fontweight="bold")    
+    if (not notitle):
+        fig.suptitle("Total Distance between Heavy Atoms", fontweight="bold")    
     ax.set_title(f"Average Cumulative Distance: {avg_distance:.3f} nm", color="dimgray")
     ax.grid(True)
 
@@ -53,7 +54,7 @@ def plot_total_distance_graph(output, distance_list, frame_step: int = 1):
 
     return Path(output)
 
-def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: int = 1, animate: bool = False):
+def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: int = 1, animate: bool = False, notitle: bool = False):
 
     
     displacement_matrix = md.geometry.squareform(distance_list, residue_pairs)
@@ -98,7 +99,8 @@ def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: 
         logger.info("--- NO RESIDUE DISPLACEMENT DETECTED ---")
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Residue Displacement", fontweight="bold")
+    if (not notitle):
+        fig.suptitle("Residue Displacement", fontweight="bold")
 
     initial_matrix = cumulative_matrix[0] if animate else final_frame_matrix
 
@@ -208,7 +210,7 @@ def print_hbonds(trajectory: md.Trajectory, freqfloat: float = 0.1, frame_step: 
     
     return "\n".join(hbond_strings)
 
-def plot_hbonds_heatmap(output, trajectory: md.Trajectory, frame_step: int = 1) -> str:
+def plot_hbonds_heatmap(output, trajectory: md.Trajectory, frame_step: int = 1, notitle: bool = False) -> str:
 
     protein_indices = trajectory.topology.select("protein")
     trajectory = trajectory.atom_slice(protein_indices)
@@ -302,7 +304,8 @@ def plot_hbonds_heatmap(output, trajectory: md.Trajectory, frame_step: int = 1) 
     logger.debug("-------------------------------------------------------")
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Hydrogen Bond Dynamics",  fontweight="bold")
+    if (not notitle):
+       fig.suptitle("Hydrogen Bond Dynamics",  fontweight="bold")
 
     # cmap = plt.get_cmap("coolwarm").copy()
     # cmap.set_bad(color="whitesmoke")
@@ -372,12 +375,7 @@ def plot_hbonds_heatmap(output, trajectory: md.Trajectory, frame_step: int = 1) 
     return Path(output)
 
 
-def plot_hbonds_occupancy_heatmap(
-    output: str,
-    trajectory: md.Trajectory,
-    frame_step: int = 1,
-    as_fraction: bool = True,
-) -> Path:
+def plot_hbonds_occupancy_heatmap(output: str, trajectory: md.Trajectory, frame_step: int = 1,as_fraction: bool = True, notitle: bool = False) -> Path:
 
     protein_indices = trajectory.topology.select("protein")
     trajectory = trajectory.atom_slice(protein_indices)
@@ -480,7 +478,8 @@ def plot_hbonds_occupancy_heatmap(
         if as_fraction
         else "Hydrogen Bond Active Frames"
     )
-    fig.suptitle(title_str,  fontweight="bold")
+    if (not notitle):
+        fig.suptitle(title_str,  fontweight="bold")
 
     cmap = plt.get_cmap("viridis").with_extremes(bad="whitesmoke")
 
@@ -665,7 +664,7 @@ def compute_salt_bridge_transitions(trajectory, distance_cutoff=0.4):
 
     return event_matrix
 
-def plot_salt_bridge_transitions(trajectory, output, frame_step=1, distance_cutoff=0.4):
+def plot_salt_bridge_transitions(trajectory, output, frame_step=1, distance_cutoff=0.4, notitle: bool = False):
 
     protein_indices = trajectory.topology.select("protein")
     trajectory = trajectory.atom_slice(protein_indices)
@@ -676,7 +675,8 @@ def plot_salt_bridge_transitions(trajectory, output, frame_step=1, distance_cuto
     n_res = trajectory.topology.n_residues
 
     fig, ax = plt.subplots(figsize=(12,12))
-    fig.suptitle("Salt Bridge Dynamics", fontweight="bold")
+    if (not notitle):
+        fig.suptitle("Salt Bridge Dynamics", fontweight="bold")
 
     # cmap = plt.get_cmap("coolwarm").copy()
     # cmap.set_bad(color="whitesmoke")
@@ -856,13 +856,7 @@ def compute_salt_bridge_occupancy(
     return occupancy_matrix
 
 
-def plot_salt_bridge_occupancy_heatmap(
-    trajectory: md.Trajectory,
-    output: str,
-    frame_step: int = 1,
-    distance_cutoff: float = 0.4,
-    as_fraction: bool = True,
-) -> Path:
+def plot_salt_bridge_occupancy_heatmap(trajectory: md.Trajectory, output: str, frame_step: int = 1, distance_cutoff: float = 0.4, as_fraction: bool = True,notitle: bool = False) -> Path:
     protein_indices = trajectory.topology.select("protein")
     trajectory = trajectory.atom_slice(protein_indices)
 
@@ -884,7 +878,8 @@ def plot_salt_bridge_occupancy_heatmap(
         if as_fraction
         else "Salt Bridge Active Frames"
     )
-    fig.suptitle(title_str,  fontweight="bold")
+    if (not notitle):
+        fig.suptitle(title_str,  fontweight="bold")
 
     cmap = plt.get_cmap("plasma").with_extremes(bad="whitesmoke")
 
