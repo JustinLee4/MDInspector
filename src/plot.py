@@ -1,6 +1,7 @@
 import gc
 import logging
 from pathlib import Path
+from typing import Optional
 
 import matplotlib
 from matplotlib.collections import LineCollection
@@ -27,7 +28,7 @@ plt.rcParams.update({
 })
 
 
-def plot_total_distance_graph(output, distance_list, frame_step: int = 1, notitle: bool = False):
+def plot_total_distance_graph(output, distance_list, frame_step: int = 1, notitle: bool = False, start_frame: int = 0):
 
     total_distance_per_frame = np.sum(distance_list, axis=1)
     avg_distance = np.mean(total_distance_per_frame)
@@ -35,7 +36,7 @@ def plot_total_distance_graph(output, distance_list, frame_step: int = 1, notitl
     num_frames = distance_list.shape[0]
 
     fig, ax = plt.subplots(figsize=(12,8))
-    x_vals = np.arange(num_frames) * frame_step
+    x_vals = start_frame + np.arange(num_frames) * frame_step
     y_vals = total_distance_per_frame
 
     ax.plot(x_vals, y_vals)
@@ -53,6 +54,8 @@ def plot_total_distance_graph(output, distance_list, frame_step: int = 1, notitl
     plt.close(fig)
 
     return Path(output)
+
+
 
 def plot_displacement_heatmap(output, distance_list, residue_pairs, frame_step: int = 1, animate: bool = False, notitle: bool = False):
 
@@ -543,16 +546,39 @@ def compute_salt_bridge_transitions(trajectory, distance_cutoff=0.4):
     top = trajectory.topology
     n_res = top.n_residues
 
-    acidic_oxygens = top.select(
+    acidic_oxygens = list(top.select(
         "(resname ASP and name OD1 OD2) or "
         "(resname GLU and name OE1 OE2) or "
         "(resname CYM and name SG)"
-    )
-    basic_nitrogens = top.select(
+    ))
+    basic_nitrogens = list(top.select(
         "(resname LYS and name NZ) or "
         "(resname ARG and name NH1 NH2 NE) or "
         "(resname HIP and name ND1 NE2)"
-    )
+    ))
+
+    for chain in top.chains:
+        protein_residues = [r for r in chain.residues if r.is_protein]
+        if not protein_residues:
+            continue
+
+    n_term = protein_residues[0]
+    for atom in n_term.atoms:
+        if atom.name == "N":
+            basic_nitrogens.append(atom.index)
+
+    c_term = protein_residues[-1]
+    for atom in c_term.atoms:
+        if atom.name in {"O", "OXT", "OC1", "OC2"}:
+            acidic_oxygens.append(atom.index)
+
+    if len(acidic_oxygens) == 0 or len(basic_nitrogens) == 0:
+        logger.warning("No acidic oxygens or basic nitrogens found in topology.")
+        return np.full((n_res, n_res), np.nan)
+
+    acidic_oxygens = np.unique(acidic_oxygens).astype(int)
+    basic_nitrogens = np.unique(basic_nitrogens).astype(int)
+
 
     if len(acidic_oxygens) == 0 or len(basic_nitrogens) == 0:
         return np.full((n_res, n_res), np.nan)
@@ -755,20 +781,38 @@ def compute_salt_bridge_occupancy(
     n_res = top.n_residues
     n_frames = trajectory.n_frames
 
-    acidic_oxygens = top.select(
+    acidic_oxygens = list(top.select(
         "(resname ASP and name OD1 OD2) or "
         "(resname GLU and name OE1 OE2) or "
         "(resname CYM and name SG)"
-    )
-    basic_nitrogens = top.select(
+    ))
+    basic_nitrogens = list(top.select(
         "(resname LYS and name NZ) or "
         "(resname ARG and name NH1 NH2 NE) or "
         "(resname HIP and name ND1 NE2)"
-    )
+    ))
+
+    for chain in top.chains:
+        protein_residues = [r for r in chain.residues if r.is_protein]
+        if not protein_residues:
+            continue
+
+    n_term = protein_residues[0]
+    for atom in n_term.atoms:
+        if atom.name == "N":
+            basic_nitrogens.append(atom.index)
+
+    c_term = protein_residues[-1]
+    for atom in c_term.atoms:
+        if atom.name in {"O", "OXT", "OC1", "OC2"}:
+            acidic_oxygens.append(atom.index)
 
     if len(acidic_oxygens) == 0 or len(basic_nitrogens) == 0:
         logger.warning("No acidic oxygens or basic nitrogens found in topology.")
         return np.full((n_res, n_res), np.nan)
+
+    acidic_oxygens = np.unique(acidic_oxygens).astype(int)
+    basic_nitrogens = np.unique(basic_nitrogens).astype(int)
 
     O_idx, N_idx = np.meshgrid(acidic_oxygens, basic_nitrogens, indexing="ij")
     atom_pairs = np.column_stack((O_idx.ravel(), N_idx.ravel()))

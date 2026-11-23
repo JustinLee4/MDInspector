@@ -21,6 +21,7 @@ parser.add_argument("-o", "--output", help="Name of Output Folder", default="")
 parser.add_argument("-s", "--step", help="Number of frames to skip between computing steps", default=1)
 parser.add_argument("-a", "--animate", action="store_true", help="Render Animations")
 parser.add_argument("--notitle", action="store_true", help="Squash Titles (for publication)")
+parser.add_argument("--distanceparse",nargs=2,type=int,metavar=("START", "END"),default=None, help="Start and end frame indices to parse (e.g., --distanceparse 0 10000)")
 args = parser.parse_args()
 
 
@@ -60,6 +61,13 @@ def main():
     keep_indices = top.select("protein or resname CY1 ZN1")
 
     trajectory = md.load(args.traj_file, top=top, atom_indices=keep_indices, stride=args.step)
+    start_frame = 0
+    if args.distanceparse:
+        start_raw, end_raw = args.distanceparse
+        start_idx = start_raw // args.step
+        end_idx = None if end_raw < 0 else (end_raw // args.step) + 1
+        trajectory = trajectory[start_idx:end_idx]
+        start_frame = start_idx * args.step
     logger.debug(trajectory)
 
     #distance between closest heavy atoms per residue
@@ -75,7 +83,7 @@ def main():
 
     #create graph on total distance between heavy atoms per residue
     logger.info("Writing total_distance_graph")
-    plot.plot_total_distance_graph(output=(OUTPUT_DIR / "total_distance.png"),distance_list=distance_list, frame_step=args.step, notitle=args.notitle)
+    plot.plot_total_distance_graph(output=(OUTPUT_DIR / "total_distance.png"),distance_list=distance_list, frame_step=args.step, notitle=args.notitle, start_frame=start_frame)
 
     logger.info("Writing displacement_heatmap")
     plot.plot_displacement_heatmap(output=(OUTPUT_DIR / "total_displacement_heatmap.mp4"), distance_list=distance_list, residue_pairs=residue_pairs, frame_step=args.step, animate=args.animate, notitle=args.notitle)
